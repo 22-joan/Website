@@ -1,65 +1,44 @@
-<script>
-async function cargarTransaccionesRecientes() {
-    const tabla = document.getElementById("tabla-transacciones");
-    tabla.innerHTML = ""; // Limpiar tabla
+async function cargarTransacciones() {
+  const url = 'https://docs.google.com/spreadsheets/d/1mEB2nrolceJJD8Bu6HrvMNh19CTzYLlSXxbH8ckIjP4/pub?output=csv&gid=213429892';
+  
+  try {
+    const response = await fetch(url);
+    const text = await response.text();
+    const filas = text.split('\n').slice(1); // quitar encabezado
 
-    try {
-        // Obtener el último bloque
-        const ultimoBloqueResponse = await fetch('https://mempool.space/api/blocks/tip/height');
-        const ultimoBloqueHeight = await ultimoBloqueResponse.text();
+    const contenedor = document.getElementById('tabla-transacciones');
+    contenedor.innerHTML = '';
 
-        // Obtener info del bloque
-        const bloqueResponse = await fetch(`https://mempool.space/api/block/${ultimoBloqueHeight}`);
-        const bloque = await bloqueResponse.json();
+    // Crear tabla
+    const tabla = document.createElement('table');
+    tabla.border = 1;
+    const header = document.createElement('tr');
+    header.innerHTML = '<th>TXID</th><th>Monto (BTC)</th><th>Hora</th><th>Tipo de transacción</th>';
+    tabla.appendChild(header);
 
-        // Obtener transacciones del bloque
-        const txids = bloque.tx;
-        
-        // Para cada txid, obtener detalles
-        const promesasTx = txids.map(async (txid) => {
-            const txResp = await fetch(`https://mempool.space/api/tx/${txid}`);
-            return await txResp.json();
-        });
+    filas.forEach(row => {
+      const cols = row.split(',');
+      if(cols.length < 4) return; // evitar filas vacías
+      const hora = cols[0].trim();      // marca temporal
+      const txid = cols[1].trim();      // nom
+      const monto = parseFloat(cols[2]); // quantitat
+      const tipo = cols[3].trim();      // tipus de transaccio
 
-        const transacciones = await Promise.all(promesasTx);
+      if (monto > 0.03) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${txid}</td><td>${monto}</td><td>${hora}</td><td>${tipo}</td>`;
+        tabla.appendChild(tr);
+      }
+    });
 
-        // Filtrar por > 0.03 BTC
-        const transaccionesFiltradas = transacciones.filter(tx => (tx.vout.reduce((sum, v) => sum + v.value, 0) / 1e8) > 0.03);
+    contenedor.appendChild(tabla);
 
-        if (transaccionesFiltradas.length === 0) {
-            tabla.innerHTML = "<tr><td colspan='3'>No hay transacciones mayores a 0.03 BTC en los últimos minutos</td></tr>";
-            return;
-        }
-
-        // Crear filas
-        transaccionesFiltradas.forEach(tx => {
-            const fila = document.createElement("tr");
-
-            const txid = document.createElement("td");
-            txid.textContent = tx.txid;
-
-            const valor = document.createElement("td");
-            const totalBTC = tx.vout.reduce((sum, v) => sum + v.value, 0) / 1e8;
-            valor.textContent = totalBTC.toFixed(5) + " BTC";
-
-            const fecha = document.createElement("td");
-            const fechaObj = new Date(tx.status.block_time * 1000);
-            fecha.textContent = fechaObj.toLocaleString();
-
-            fila.appendChild(txid);
-            fila.appendChild(valor);
-            fila.appendChild(fecha);
-
-            tabla.appendChild(fila);
-        });
-
-    } catch (error) {
-        console.error("Error al cargar transacciones:", error);
-        tabla.innerHTML = "<tr><td colspan='3'>Error al obtener datos de la API</td></tr>";
-    }
+  } catch (error) {
+    console.error('Error al cargar las transacciones:', error);
+    const contenedor = document.getElementById('tabla-transacciones');
+    contenedor.innerHTML = '<p>Error al cargar las transacciones.</p>';
+  }
 }
 
 // Ejecutar al cargar la página
-document.addEventListener("DOMContentLoaded", cargarTransaccionesRecientes);
-</script>
-
+window.onload = cargarTransacciones;
