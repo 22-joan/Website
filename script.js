@@ -1,45 +1,45 @@
-const tableBody = document.querySelector("#txTable tbody");
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Transacciones BTC > 0.03</title>
+  <style>
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Transacciones BTC > 0.03</h1>
+  <table id="btc-table">
+    <thead>
+      <tr>
+        <th>TxID</th>
+        <th>Monto (BTC)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-// Función para convertir satoshis a BTC
-function satToBTC(sat) {
-    return sat / 100000000;
-}
+  <script>
+    async function fetchTransactions() {
+      const response = await fetch('https://mempool.space/api/mempool/recent');
+      const data = await response.json();
+      const tbody = document.querySelector('#btc-table tbody');
+      tbody.innerHTML = '';
 
-// Función para mostrar transacciones
-async function loadTransactions() {
-    try {
-        // Obtenemos los últimos 10 bloques
-        const latestBlock = await fetch("https://blockstream.info/api/blocks/tip/height")
-            .then(res => res.text());
-
-        const blockData = await fetch(`https://blockstream.info/api/block-height/${latestBlock}`)
-            .then(res => res.json());
-
-        // Obtenemos las transacciones del bloque
-        const txs = await fetch(`https://blockstream.info/api/block/${blockData.id}/txs`)
-            .then(res => res.json());
-
-        tableBody.innerHTML = ""; // Limpiar tabla
-
-        txs.forEach(tx => {
-            let totalBTC = tx.vout.reduce((sum, v) => sum + v.value, 0) / 100000000;
-
-            // Filtrar transacciones > 0.03 BTC
-            if(totalBTC > 0.03){
-                let row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${tx.txid}</td>
-                    <td>${totalBTC.toFixed(4)}</td>
-                    <td>${new Date(tx.status.block_time * 1000).toLocaleString()}</td>
-                `;
-                tableBody.appendChild(row);
-            }
-        });
-    } catch (err) {
-        console.error("Error al obtener transacciones:", err);
+      data.forEach(tx => {
+        const valueBTC = tx.vout_sum / 1e8; // convertir sats a BTC
+        if (valueBTC > 0.03) {
+          const row = `<tr>
+            <td>${tx.txid}</td>
+            <td>${valueBTC.toFixed(5)}</td>
+          </tr>`;
+          tbody.innerHTML += row;
+        }
+      });
     }
-}
 
-// Actualizar cada 30 segundos
-loadTransactions();
-setInterval(loadTransactions, 30000);
+    fetchTransactions();
+    setInterval(fetchTransactions, 30000); // actualizar cada 30s
+  </script>
+</body>
+</html>
