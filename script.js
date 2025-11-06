@@ -14,14 +14,12 @@ async function cargarTransacciones() {
             if (cols.length < 4) return; // evitar filas vacías
             const hora = cols[0].trim();      // marca temporal
             const txid = cols[1].trim();      // nom
-            const monto = parseFloat(cols[2]); // quantitat
+            const monto = cols[2].trim();     // quantitat
             const tipo = cols[3].trim();      // tipus de transaccio
 
-            if (monto > 0.03) { // filtro > 0.03 BTC
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${txid}</td><td>${monto}</td><td>${hora}</td>`;
-                tbody.appendChild(tr);
-            }
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${txid}</td><td>${monto}</td><td>${hora}</td>`;
+            tbody.appendChild(tr);
         });
 
     } catch (error) {
